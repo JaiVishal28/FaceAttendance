@@ -127,7 +127,7 @@ if True:
                         best_match_count = 0
                         best_match_name = "unknown"
                         for k,v in people.items():
-                            result = face_recognition.compare_faces(v,img_enc[i],tolerance=0.40)
+                            result = face_recognition.compare_faces(v,img_enc[i],tolerance=0.488)
                             count_true = result.count(True)
                             if  count_true > best_match_count: # To find the best person that matches with the face
                                 best_match_count = count_true
