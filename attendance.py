@@ -1,7 +1,4 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
-from pathlib import Path
-import streamlit_authenticator as stauth
 import os
 import base64
 import pickle
@@ -16,41 +13,13 @@ import PIL
 import PIL.Image
 import PIL.ImageFont
 from PIL import ImageOps
+import dlib
 import PIL.ImageDraw
 import image_dehazer
 import math
-
-
-# --- USER AUTHENTICATION ---
-names = ["CMRIT_Admin", "CMRIT_Professor"]
-usernames = ["cmradmin", "cmrprof"]
-
-# load hashed passwords
-file_path = Path(__file__).parent / "hashed_pw.pkl"
-with file_path.open("rb") as file:
-    hashed_passwords = pickle.load(file)
-
-authenticator = stauth.Authenticate(names, usernames, hashed_passwords,
-    "facerec", "abcdef", cookie_expiry_days=100)
-
-name, authentication_status, username = authenticator.login("Login", "main")
-
-if authentication_status == False:
-    st.error("Username/password is incorrect")
-
-if authentication_status == None:
-    st.warning("Please enter your username and password")
-
-if authentication_status:
+if True:
 
     # Load your logo image
-    logo = Image.open("cmr.png")
-
-    # Display the logo and navigation bar
-    st.image(logo, width=150)
-    #GOOGLE SHEETS
-    url = "https://docs.google.com/spreadsheets/d/1lUzHTg-J13V0jxMqcd0_15WbQ7o8zSXFWi-Z03aKzng/"
-    conn = st.connection("gsheets", type=GSheetsConnection,ttl=1)
 
     stud_list = {
             "name": [],
@@ -70,8 +39,6 @@ if authentication_status:
     now = datetime.datetime.now(local_tz)           
     def main():
         # st.title("Student Attendance System")
-        authenticator.logout("Logout","sidebar")
-        st.sidebar.title(f"Welcome {name}")
         menu = ["Home","Take Attendance","Manual Attendance"]
         choice = st.sidebar.selectbox("Select Option", menu)
 
@@ -86,89 +53,15 @@ if authentication_status:
                 """
             )
                 
-            st.write("Check [Google Sheets](%s) for updated attendance list!!!" % url)    
-            st.write(str(now.strftime("%a|%d/%b/%Y|%H:%M")))
-            df = conn.read(spreadsheet=url,worksheet="REPORT CONSOLIDATED",ttl=10)
-            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-            df.index=df.index+1    
-            st.write(pd.DataFrame(df))    
-            
+            st.write(str(now.strftime("%a|%d/%b/%Y|%H:%M")))        
         if choice == "Take Attendance":
             take_attendance()
         if choice == "Manual Attendance":
             st.title("Manual Attendance")    
-            manualattendance()
 
     # Load existing encodings and student IDs
 
-    # New one with enhanced options
-    import dlib
-    # if "clkd" not in st.session_state:
-    #     st.session_state.clkd=False
-    # def callback():
-    #     st.session_state.clkd=True
-    def manualattendance():
-        stud_list=st.session_state.sl
-        absent_list=st.session_state.al  
-        ma_list = {
-            "name": [],
-            "usn":[]
-        }   
-        if len(stud_list["name"])>0:
-            st.subheader("Students detected are:")
-            st.dataframe(pd.DataFrame(stud_list,index=range(1, len(stud_list["name"])+1)))
-            st.subheader("Absentee List:")
-            st.dataframe(pd.DataFrame(absent_list,index=range(1, len(absent_list["name"])+1)))    
-            # st.write("Since there are "+ str(stud_list["usn"][-1]) + " unknown faces.")
-            st.subheader("Manual Attendance")
-            manual_attdn=st.multiselect("Choose the students to be included:",absent_list["name"])
-            if len(manual_attdn)>0:
-                for ma in manual_attdn:
-                    if ma not in ma_list["name"]:
-                        ma_list["name"].append(ma)
-                        ma_list["usn"].append(absent_list["usn"][absent_list["name"].index(ma)])
-                st.subheader("Selected Students:")
-                st.dataframe(pd.DataFrame(ma_list,index=range(1, len(ma_list["name"])+1)))   
-                r=st.button("Confirm")
-                if r:
-                    # stud_list["usn"].remove(stud_list["usn"][stud_list["name"].index("Unknown Faces")])    
-                    # stud_list["name"].remove("Unknown Faces")     
-                    for a in ma_list["name"]:
-                        if a not in stud_list["name"]:   
-                            stud_list["name"].append(a)
-                            # stud_list["usn"].append(ma_list["usn"][ma_list["name"].index(a)])
-                    for a in ma_list["usn"]:
-                        if a not in stud_list["usn"]:   
-                            stud_list["usn"].append(a)     
-                    st.dataframe(pd.DataFrame(stud_list,index=range(1, len(stud_list["name"])+1)))
-    
-                    # shname = str(now.strftime("%a|%d/%b/%Y|%H:%M"))       
-                    shname = st.session_state.shname
-                    conn.create(worksheet=shname, data=pd.DataFrame(stud_list,index=range(1, len(stud_list["name"])+1)))
-                    df = conn.read(spreadsheet=url,worksheet="REPORT CONSOLIDATED",ttl=30)
-                    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-                    conn2 = st.connection("gsheets", type=GSheetsConnection,ttl=1)    
-                    df2 = conn2.read(spreadsheet=url,worksheet=shname)  
-                    # Check if each name in df exists in df2
-                    df[shname] = df['Name'].isin(df2['name'])
-                    df[shname] = df[shname].map({True: 'P', False: 'A'})
-                    totalp = sum(1 for v in df[shname] if v=="P")
-                    percentp=round(totalp * 100 / (len(df["Name"].values) - 1), 2)   
-                    # df[shname].append(str(totalp))
-                    # df[shname].append(str(percentp))
-                    # last_two_rows = df[shname].tail(2)
-                    # Replace the last two rows with totalp and percentp
-                    # last_two_rows = last_two_rows.replace(['A', 'P'], [totalp, percentp])    
-                    st.subheader("CONSOLIDATED REPORT")
-                    st.write("Total Students Present: "+ str(totalp))
-                    st.write("% Students Present: "+ str(percentp) + "%") 
-                    st.write(pd.DataFrame(df,index=range(1, len(df["Name"])+1)))
-                    # Update the Google Sheets
-                    conn.update(worksheet="REPORT CONSOLIDATED", data=df)
-                    st.write("Attendance marked for "+ str(len(stud_list["name"])) + ".Check the updated [Google Sheets](%s)!!!" % url)
-                    shname=" "
-                    stud_list["name"]=[]
-                    stud_list["usn"]=[]    
+    # New one with enhanced options  
     def take_attendance():
         with open('encoded_people.pickle', 'rb') as filename:
             people = pickle.load(filename)
@@ -222,7 +115,7 @@ if authentication_status:
                     st.image(dehaze_img,channels="RGB")
                 st.write("""Face Detection and Tagging in progress....""")
                 #Face Detection
-                # cnt=-1    
+                cnt=-1    
                 for x in dehaze_imgnp:
                     img_loc = face_recognition.face_locations(x,number_of_times_to_upsample=3,model="hog")
                     img_enc = face_recognition.face_encodings(x,known_face_locations=img_loc,num_jitters=1)
@@ -244,8 +137,8 @@ if authentication_status:
                             if a not in stud_list["name"]:
                                 stud_list["name"].append(a)
                                 stud_list["usn"].append(b)
-                        # else:
-                            # cnt=cnt+1
+                        else:
+                            cnt=cnt+1
                     # Draw and write on photo
                         top,right,bottom,left = img_loc[i]
                         draw = PIL.ImageDraw.Draw(face_img)
@@ -260,10 +153,10 @@ if authentication_status:
                     if a in absent_list["name"]:   
                             absent_list["usn"].remove(absent_list["usn"][absent_list["name"].index(a)])
                             absent_list["name"].remove(a)
-                # stud_list["name"].append("Unknown Faces")
-                # if cnt==-1:
-                #     cnt=0
-                # stud_list["usn"].append(cnt)
+                stud_list["name"].append("Unknown Faces")
+                if cnt==-1:
+                    cnt=0
+                stud_list["usn"].append(cnt)
                 st.subheader("Students detected from Uploaded Images are:")
                 st.dataframe(pd.DataFrame(stud_list,index=range(1, len(stud_list["name"])+1)))
                 st.subheader("Absentees:")
