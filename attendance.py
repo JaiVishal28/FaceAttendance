@@ -117,7 +117,7 @@ if True:
                 #Face Detection
                 cnt=-1    
                 for x in dehaze_imgnp:
-                    img_loc = face_recognition.face_locations(x,number_of_times_to_upsample=4,model="hog")
+                    img_loc = face_recognition.face_locations(x,number_of_times_to_upsample=2,model="hog")
                     img_enc = face_recognition.face_encodings(x,known_face_locations=img_loc,num_jitters=1)
                     face_img = PIL.Image.fromarray(x)
                 #Face Tagging
