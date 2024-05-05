@@ -63,6 +63,7 @@ if True:
 
     # New one with enhanced options  
     def take_attendance():
+        start_time = time.time()
         with open('encoded_people.pickle', 'rb') as filename:
             people = pickle.load(filename)
         st.subheader("Take Attendance")
@@ -165,6 +166,24 @@ if True:
                 st.session_state.sl = stud_list
                 st.session_state.al = absent_list
                 st.session_state.shname =shname
+
+                end_time = time.time()
+                processing_time = end_time - start_time
+                st.write(f"Processing Time: {processing_time} seconds")
+            
+                # Accuracy Metrics
+                total_faces = len(dehaze_imgnp)
+                true_positives = len(stud_list["name"]) - 1  # Excluding "Unknown Faces"
+                false_positives = cnt  # Number of unknown faces
+            
+                # Efficiency Metrics
+                memory_usage = psutil.Process(os.getpid()).memory_info().rss  # Memory usage in bytes
+                st.write(f"Memory Usage: {memory_usage / 1024 / 1024} MB")
+            
+                # Attendance Metrics
+                total_students = len(stud_list["name"]) - 1  # Excluding "Unknown Faces"
+                attendance_rate = (total_students / total_faces) * 100
+                st.write(f"Attendance Rate: {attendance_rate}%")
                 # with st.form("manattdn"):
                 #     manattdn=st.form_submit_button("Manual Attendance")
                 # if manattdn:
