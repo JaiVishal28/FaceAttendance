@@ -80,7 +80,7 @@ if True:
                 uploaded_file = st.camera_input("Choose an image file")    
             img=[]
             img_np=[]
-            if uploaded_file is not None and len(uploaded_file) !=0:
+            if uploaded_file is not None:
                 for i in uploaded_file:
                     file_bytes = i.getvalue()
                     nparr = np.frombuffer(file_bytes, np.uint8)
